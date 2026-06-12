@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: interviewiq-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.js
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: ANTHROPIC_API_KEY
+        sync: false
