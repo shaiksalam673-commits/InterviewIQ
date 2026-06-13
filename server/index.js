@@ -3,12 +3,54 @@ import cors from 'cors';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { rateLimit } from 'express-rate-limit';
 import { parsePdf } from './parser.js';
 import { analyzeProfile, generateQuestion, evaluateAnswer, generateFinalReport } from './gemini.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const LOGS_FILE = path.join(__dirname, 'usage_logs.json');
+let usageLogs = [];
+
+try {
+  if (fs.existsSync(LOGS_FILE)) {
+    usageLogs = JSON.parse(fs.readFileSync(LOGS_FILE, 'utf8'));
+  }
+} catch (err) {
+  console.error('Failed to load usage logs:', err);
+}
+
+const getClientIp = (req) => {
+  return req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+};
+
+function logUsage(action, details = {}) {
+  const logEntry = {
+    id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    timestamp: new Date().toISOString(),
+    action,
+    ip: details.ip || 'anonymous',
+    email: details.email || 'Guest',
+    name: details.name || 'Anonymous',
+    targetRole: details.targetRole || 'N/A',
+    matchPercentage: details.matchPercentage || null,
+    score: details.score || null,
+  };
+  usageLogs.unshift(logEntry);
+  if (usageLogs.length > 200) {
+    usageLogs = usageLogs.slice(0, 200);
+  }
+  try {
+    fs.writeFileSync(LOGS_FILE, JSON.stringify(usageLogs, null, 2));
+  } catch (err) {
+    // Gracefully fallback on read-only systems
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -73,6 +115,8 @@ app.post('/api/analyze', (req, res, next) => {
   try {
     const jobDescription = req.body.jobDescription || '';
     const targetRole = req.body.targetRole || 'Full Stack';
+    const userEmail = req.body.userEmail || 'anonymous';
+    const userName = req.body.userName || 'Guest';
     const file = req.file;
 
     if (!file) {
@@ -88,6 +132,14 @@ app.post('/api/analyze', (req, res, next) => {
     console.log('Sending text to Gemini for profile analysis...');
     const profile = await analyzeProfile(resumeText, jobDescription, targetRole);
 
+    logUsage('Resume Analysis', {
+      ip: getClientIp(req),
+      email: userEmail,
+      name: userName,
+      targetRole,
+      matchPercentage: profile.matchPercentage,
+    });
+
     return res.status(200).json(profile);
   } catch (error) {
     console.error('Error in /api/analyze:', error);
@@ -101,7 +153,7 @@ app.post('/api/analyze', (req, res, next) => {
  */
 app.post('/api/next-question', async (req, res) => {
   try {
-    const { profile, history, questionNumber } = req.body;
+    const { profile, history, questionNumber, userEmail, userName } = req.body;
 
     if (!profile) {
       return res.status(400).json({ error: 'Profile is required' });
@@ -112,6 +164,13 @@ app.post('/api/next-question', async (req, res) => {
 
     console.log(`Generating question ${questionNumber}...`);
     const question = await generateQuestion(profile, history || [], questionNumber);
+
+    logUsage(`Question Generation (Q${questionNumber})`, {
+      ip: getClientIp(req),
+      email: userEmail || 'anonymous',
+      name: userName || 'Guest',
+      targetRole: profile.targetRole || 'N/A',
+    });
 
     return res.status(200).json({ question });
   } catch (error) {
@@ -126,7 +185,7 @@ app.post('/api/next-question', async (req, res) => {
  */
 app.post('/api/submit-answer', async (req, res) => {
   try {
-    const { question, answer, profile } = req.body;
+    const { question, answer, profile, userEmail, userName } = req.body;
 
     if (!question || !answer || !profile) {
       return res.status(400).json({ error: 'Missing question, answer, or profile context' });
@@ -134,6 +193,14 @@ app.post('/api/submit-answer', async (req, res) => {
 
     console.log('Evaluating answer...');
     const evaluation = await evaluateAnswer(question, answer, profile);
+
+    logUsage('Answer Submission', {
+      ip: getClientIp(req),
+      email: userEmail || 'anonymous',
+      name: userName || 'Guest',
+      targetRole: profile.targetRole || 'N/A',
+      score: evaluation?.score,
+    });
 
     return res.status(200).json({ evaluation });
   } catch (error) {
@@ -148,7 +215,7 @@ app.post('/api/submit-answer', async (req, res) => {
  */
 app.post('/api/generate-report', async (req, res) => {
   try {
-    const { profile, history } = req.body;
+    const { profile, history, userEmail, userName } = req.body;
 
     if (!profile || !history) {
       return res.status(400).json({ error: 'Missing profile or history' });
@@ -157,6 +224,14 @@ app.post('/api/generate-report', async (req, res) => {
     console.log('Generating final report...');
     const report = await generateFinalReport(profile, history);
 
+    logUsage('Report Compilation', {
+      ip: getClientIp(req),
+      email: userEmail || 'anonymous',
+      name: userName || 'Guest',
+      targetRole: profile.targetRole || 'N/A',
+      score: report?.overallScore,
+    });
+
     return res.status(200).json(report);
   } catch (error) {
     console.error('Error in /api/generate-report:', error);
@@ -164,19 +239,28 @@ app.post('/api/generate-report', async (req, res) => {
   }
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Serve client built static assets
-app.use(express.static(path.join(__dirname, '../dist')));
-
-// Fallback to index.html for SPA router on non-API routes
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+/**
+ * Route: GET /api/admin/logs
+ * Returns usage logs for the admin panel.
+ */
+app.get('/api/admin/logs', (req, res) => {
+  res.status(200).json({ logs: usageLogs });
 });
+
+/**
+ * Route: POST /api/admin/clear
+ * Clears the server-side logs.
+ */
+app.post('/api/admin/clear', (req, res) => {
+  usageLogs = [];
+  try {
+    fs.writeFileSync(LOGS_FILE, JSON.stringify([], null, 2));
+  } catch (err) {
+    // ignore
+  }
+  res.status(200).json({ message: 'Logs cleared successfully' });
+});
+
 
 // Catch-all 404 handler
 app.use((req, res) => {

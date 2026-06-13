@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, Sparkles, AlertCircle, ShieldAlert } from 'lucide-react';
 
-export default function UploadPage({ onAnalysisComplete, credits, isPro, onUpgradeClick }) {
+export default function UploadPage({ onAnalysisComplete, credits, isPro, onUpgradeClick, activeUser }) {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
   const [targetRole, setTargetRole] = useState('Full Stack');
@@ -85,6 +85,8 @@ export default function UploadPage({ onAnalysisComplete, credits, isPro, onUpgra
       formData.append('resume', file);
       formData.append('jobDescription', jobDescription);
       formData.append('targetRole', targetRole);
+      formData.append('userEmail', activeUser?.email || 'anonymous');
+      formData.append('userName', activeUser?.name || 'Guest');
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/analyze`, {
         method: 'POST',

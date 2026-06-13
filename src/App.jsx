@@ -8,6 +8,7 @@ import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';
 import UpgradeModal from './components/UpgradeModal';
 import HistoryPage from './components/HistoryPage';
+import AdminPage from './components/AdminPage';
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '';
 const isClerkEnabled = clerkPublishableKey.trim() !== '';
@@ -176,6 +177,8 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
         body: JSON.stringify({
           profile,
           history: finalHistory,
+          userEmail: activeUser?.email || 'anonymous',
+          userName: activeUser?.name || 'Guest'
         }),
       });
 
@@ -278,6 +281,14 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
                 >
                   History
                 </button>
+                <button
+                  onClick={() => setPage('admin')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    page === 'admin' ? 'bg-accent/10 text-accent border border-accent/20' : 'text-gray-400 hover:text-white border border-transparent'
+                  }`}
+                >
+                  Admin Console
+                </button>
               </nav>
             )}
           </div>
@@ -379,6 +390,7 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
             credits={credits}
             isPro={isPro}
             onUpgradeClick={() => setUpgradeModalOpen(true)}
+            activeUser={activeUser}
           />
         )}
         
@@ -392,6 +404,7 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
             questionNumber={questionNumber}
             setQuestionNumber={setQuestionNumber}
             onInterviewEnd={handleInterviewEnd}
+            activeUser={activeUser}
           />
         )}
         
@@ -412,6 +425,12 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
               setPage('report');
             }}
             onStartNew={() => setPage('upload')}
+          />
+        )}
+
+        {page === 'admin' && (
+          <AdminPage 
+            onStartNew={() => setPage(activeUser ? 'upload' : 'landing')}
           />
         )}
       </main>
