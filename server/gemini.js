@@ -122,6 +122,9 @@ export async function generateQuestion(profile, history, questionNumber) {
 
   const recentHistory = history.slice(-2);
   const coveredTopics = history.map((h, i) => `- Q${i + 1}: ${h.question}`).join('\n');
+  const previousFirstWords = history.map(h => h.question.trim().split(/\s+/)[0].toLowerCase());
+  const lastFirstWord = previousFirstWords.length > 0 ? previousFirstWords[previousFirstWords.length - 1] : '';
+  const previousTopicSnippets = history.map(h => h.question.split(' ').slice(0, 5).join(' ')).join(' | ');
 
   const prompt = `You are a professional, polite, and encouraging but strict technical interviewer conducting a mock interview for:
 Candidate: ${profile.name}
@@ -154,6 +157,12 @@ CRITICAL CONSTRAINTS:
 5. If the question contains code blocks, wrap them in standard markdown triple backticks.
 6. Do not ask about topics already covered in previous questions:
 ${coveredTopics || 'None'}
+
+ADDITIONAL RULES:
+- Never ask a question already covered in history. Previously asked topics: ${previousTopicSnippets || 'None'}
+- For technical questions, always end with: 'Please explain with a real example from your experience or a practical scenario.'
+- For Senior level, always include a follow-up constraint like: 'How would this scale to 10 million users?' or 'What are the security implications?'
+- Never start this question with the word "${lastFirstWord}" — the previous question already started with that word.
 
 Generate only the question text.`;
 
@@ -191,14 +200,27 @@ Candidate Profile context:
 - Level: ${profile.experienceLevel}
 - Name: ${profile.name}
 
-Evaluate the response objectively. Assess if the candidate answered the core question, their depth of understanding, correctness, structure, and communication.
+Evaluate strictly based on these criteria:
+- Correctness (30 points): Is the answer technically accurate?
+- Depth (25 points): Does it go beyond surface level explanation?
+- Real-world application (25 points): Did they give a concrete example or scenario?
+- Communication (20 points): Is it structured, clear and concise?
+
+The total score is the sum of all four criteria scores (max 100).
 
 You must return a JSON response. The JSON object must have exactly these keys:
 {
-  "score": Number (Score out of 100, where 90+ is excellent, 70-89 is solid, 50-69 needs work, <50 is poor),
+  "score": Number (Sum of all criteria scores, 0-100),
   "feedback": "String (Constructive feedback explaining the score and what was missing or correct)",
   "strengths": ["Array of Strings (1-2 specific strengths demonstrated in the response)"],
-  "improvements": ["Array of Strings (1-2 specific suggestions for improving this answer)"]
+  "improvements": ["Array of Strings (1-2 specific suggestions for improving this answer)"],
+  "idealAnswerHints": ["3 bullet points showing what a perfect answer would include"],
+  "criteriaScores": {
+    "correctness": Number (0-30),
+    "depth": Number (0-25),
+    "realWorld": Number (0-25),
+    "communication": Number (0-20)
+  }
 }
 
 Ensure the output is valid JSON.`;
@@ -242,19 +264,30 @@ ${history.map((h, i) => `Question ${i + 1}: ${h.question}\nAnswer ${i + 1}: ${h.
 Create a final comprehensive performance report.
 Synthesize the results. Evaluate which core skills were demonstrated well and which were weak. Include overall score, skill-wise scores, comprehensive list of overall strengths, areas to improve, and actionable recommendations.
 
+For each skill in skillBreakdown, base the score on actual answers given, not averages. Find which questions tested each skill and use those specific scores.
+
 You must return a JSON response. The JSON object must have exactly these keys:
 {
   "overallScore": Number (Average of individual scores, adjusted for overall performance, 0-100),
   "performanceRating": "String (e.g., 'Excellent', 'Proficient', 'Developing', 'Needs Attention')",
   "skillBreakdown": {
-    "SkillName1": Number (Score 0-100),
-    "SkillName2": Number (Score 0-100),
-    "SkillName3": Number (Score 0-100),
-    ... (Include 4-6 primary skills tested)
+    "SkillName1": Number (Score 0-100, derived from questions that tested this specific skill),
+    "SkillName2": Number (Score 0-100, derived from questions that tested this specific skill),
+    "SkillName3": Number (Score 0-100, derived from questions that tested this specific skill)
   },
   "strengths": ["Array of Strings (Comprehensive strengths observed across the interview)"],
   "improvements": ["Array of Strings (Comprehensive areas to improve with actionable recommendations)"],
-  "conclusion": "String (A supportive, professional closing note summarizing their readiness for the role)"
+  "conclusion": "String (A supportive, professional closing note summarizing their readiness for the role)",
+  "learningResources": [
+    {
+      "skill": "SkillName",
+      "resource": "Specific course or book name",
+      "url": "https://...",
+      "reason": "Why this helps based on their gaps"
+    }
+  ],
+  "interviewReadiness": Number (0-100, overall readiness score for real interviews),
+  "estimatedPreparationDays": Number (Realistic number of days needed to be job-ready based on gaps)
 }
 
 Ensure the output is valid JSON.`;
@@ -496,40 +529,19 @@ function getMockQuestion(profile, history, questionNumber) {
 }
 
 function getMockAnswerEvaluation(question, answer, profile) {
-  const answerLen = (answer || '').trim().length;
-  const words = question.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
-  const stopWords = new Set([
-    'the', 'what', 'how', 'why', 'and', 'you', 'for', 'are', 'with', 'your', 'can', 'explain', 
-    'describe', 'difference', 'between', 'some', 'position', 'requirements', 'particularly', 
-    'interested', 'specific', 'aligning', 'long', 'term', 'career', 'goals', 'could', 'please', 
-    'start', 'interview', 'highlighting', 'looking', 'about', 'would', 'should'
-  ]);
-  const keywords = [...new Set(words.filter(w => !stopWords.has(w)))];
-  
+  // Keyword-based scoring: extract meaningful words (length > 4) from the question
+  const questionWords = question.toLowerCase()
+    .split(/\s+/)
+    .filter(w => w.length > 4);
   const answerLower = (answer || '').toLowerCase();
-  let matchCount = 0;
-  keywords.forEach(kw => {
-    if (answerLower.includes(kw)) {
-      matchCount++;
-    }
-  });
-
-  // Score based on match count + length combined
-  // Base score from length
-  let lengthScore = 30;
-  if (answerLen >= 150) {
-    lengthScore = 70;
-  } else if (answerLen >= 60) {
-    lengthScore = 55;
-  } else if (answerLen >= 15) {
-    lengthScore = 40;
-  }
-
-  // Keyword match score contribution
-  const matchRatio = keywords.length > 0 ? matchCount / keywords.length : 0.5;
-  const matchScore = Math.round(matchRatio * 30); // up to 30 points
-
-  let score = lengthScore + matchScore;
+  const matchedKeywords = questionWords.filter(w => answerLower.includes(w));
+  const keywordScore = Math.min(
+    (matchedKeywords.length / Math.max(questionWords.length, 1)) * 100, 100
+  );
+  const lengthBonus = Math.min(
+    (answer || '').trim().split(/\s+/).length / 150 * 20, 20
+  );
+  let score = Math.round(Math.min(keywordScore * 0.8 + lengthBonus, 100));
 
   // Adjust score slightly based on experience level
   if (profile.experienceLevel === 'Senior') {
@@ -544,22 +556,42 @@ function getMockAnswerEvaluation(question, answer, profile) {
   let feedback = "A reasonable attempt. The answer addresses the core question but lacks deeper technical depth or concrete project examples.";
   let strengths = ["Clear presentation", "Addressed the primary topic"];
   let improvements = ["Provide specific examples", "Explain the underlying architecture"];
+  let idealAnswerHints = [
+    "Define the core concept with precise technical terminology",
+    "Illustrate with a concrete real-world example or past project scenario",
+    "Discuss trade-offs, limitations, or alternative approaches"
+  ];
 
   if (score < 50) {
-    feedback = "Your answer is extremely brief and does not demonstrate sufficient understanding of the concepts or address the key terms of the question.";
-    strengths = ["Direct answer"];
-    improvements = ["Elaborate further", "Detail relevant technical terms and key concepts mentioned in the question"];
+    feedback = "Your answer is too brief or misses the key concepts of the question. Expand your response with relevant technical terms and examples.";
+    strengths = ["Attempted the question"];
+    improvements = ["Elaborate further", "Cover key technical terms from the question directly"];
   } else if (score >= 90) {
-    feedback = "Excellent! You provided a detailed answer showing a strong conceptual foundation along with structured examples and key terminology.";
-    strengths = ["Comprehensive details", "Good conceptual clarity and keyword coverage"];
-    improvements = ["Refine conciseness in summarizing key points"];
+    feedback = "Excellent! You demonstrated strong keyword coverage, gave a well-structured answer, and showed clear mastery of the topic.";
+    strengths = ["Comprehensive keyword coverage", "Strong conceptual clarity"];
+    improvements = ["Refine conciseness when summarizing key points"];
   } else if (score >= 70) {
-    feedback = "A solid, well-rounded answer. You clearly explain the concept and cover the key terms mentioned in the question.";
-    strengths = ["Solid technical understanding", "Structured explanation"];
-    improvements = ["Explain real-world trade-offs in different contexts"];
+    feedback = "A solid, well-rounded answer. You cover most of the key terms and show good understanding. Adding more concrete examples would elevate this further.";
+    strengths = ["Good technical vocabulary", "Structured explanation"];
+    improvements = ["Include measurable outcomes or real-world trade-offs"];
   }
 
-  return { score, feedback, strengths, improvements };
+  // Derive mock criteriaScores from the overall score
+  const correctness = Math.round(Math.min((score / 100) * 30, 30));
+  const depth = Math.round(Math.min((score / 100) * 25, 25));
+  const realWorld = answerLower.includes('example') || answerLower.includes('project') || answerLower.includes('scenario')
+    ? Math.round(Math.min((score / 100) * 25 + 5, 25))
+    : Math.round(Math.min((score / 100) * 25 * 0.6, 25));
+  const communication = Math.round(Math.min((score / 100) * 20, 20));
+
+  return {
+    score,
+    feedback,
+    strengths,
+    improvements,
+    idealAnswerHints,
+    criteriaScores: { correctness, depth, realWorld, communication }
+  };
 }
 
 function getMockReport(profile, history) {

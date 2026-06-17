@@ -1,6 +1,6 @@
 import React from 'react';
 import { jsPDF } from 'jspdf';
-import { Award, ChevronRight, CheckCircle2, AlertTriangle, RotateCcw, Download, Sparkles, BookOpen } from 'lucide-react';
+import { Award, ChevronRight, CheckCircle2, AlertTriangle, RotateCcw, Download, Sparkles, BookOpen, Linkedin, ExternalLink, Clock, Target } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 
 export default function ReportPage({ profile, report, onReset }) {
@@ -31,6 +31,23 @@ export default function ReportPage({ profile, report, onReset }) {
     if (score >= 70) return 'stroke-accent';
     if (score >= 50) return 'stroke-yellow-400';
     return 'stroke-red-400';
+  };
+
+  const getReadinessLabel = (score) => {
+    if (score >= 80) return { label: 'Ready to Interview! 🎯', color: 'text-emerald-400' };
+    if (score >= 60) return { label: 'Almost Ready 📈', color: 'text-accent' };
+    if (score >= 40) return { label: 'More Practice Needed 💪', color: 'text-yellow-400' };
+    return { label: 'Keep Studying 📚', color: 'text-red-400' };
+  };
+
+  const handleLinkedInShare = () => {
+    const text = encodeURIComponent(
+      `I scored ${report.overallScore}/100 on an AI mock interview for ${profile.targetRole}! Try InterviewIQ free 🎯 #InterviewPrep #AI`
+    );
+    window.open(
+      `https://www.linkedin.com/sharing/share-offsite/?url=https://interview-iq-green.vercel.app&summary=${text}`,
+      '_blank'
+    );
   };
 
   const handleDownloadPDF = () => {
@@ -241,13 +258,20 @@ export default function ReportPage({ profile, report, onReset }) {
             Review your core competencies, key strengths, and targeted improvement areas to refine your answers.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={onReset}
             className="px-4 py-2.5 rounded-xl border border-darkBorder hover:border-gray-500 bg-card/40 text-gray-300 font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
           >
             <RotateCcw size={16} />
             <span>Try Again</span>
+          </button>
+          <button
+            onClick={handleLinkedInShare}
+            className="px-5 py-2.5 rounded-xl bg-[#0A66C2] hover:bg-[#0856a8] text-white font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-blue-900/30 cursor-pointer"
+          >
+            <Linkedin size={16} />
+            <span>Share on LinkedIn</span>
           </button>
           <button
             onClick={handleDownloadPDF}
@@ -305,6 +329,34 @@ export default function ReportPage({ profile, report, onReset }) {
           <div className={`px-4 py-1.5 rounded-full border text-sm font-bold capitalize ${ratingClass}`}>
             {report.performanceRating || 'Proficient'}
           </div>
+
+          {/* Interview Readiness Score */}
+          {report.interviewReadiness != null && (() => {
+            const readiness = getReadinessLabel(report.interviewReadiness);
+            return (
+              <div className="mt-5 w-full border-t border-darkBorder pt-4 flex flex-col items-center gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                  <Target size={11} className="text-accent" />
+                  Interview Readiness
+                </div>
+                <span className={`text-2xl font-extrabold font-mono ${readiness.color}`}>
+                  {report.interviewReadiness}%
+                </span>
+                <span className={`text-xs font-semibold ${readiness.color}`}>{readiness.label}</span>
+              </div>
+            );
+          })()}
+
+          {/* Estimated Prep Days */}
+          {report.estimatedPreparationDays != null && (
+            <div className="mt-3 w-full bg-black/20 border border-darkBorder/50 rounded-xl px-3 py-2.5 flex items-center gap-2">
+              <Clock size={13} className="text-accent flex-shrink-0" />
+              <p className="text-[11px] text-gray-400 text-left leading-snug">
+                Estimated prep time to be fully ready:{' '}
+                <span className="text-white font-bold">{report.estimatedPreparationDays} days</span>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Radar/Spider Chart Box */}
@@ -323,18 +375,25 @@ export default function ReportPage({ profile, report, onReset }) {
                   <Radar name="Candidate" dataKey="score" stroke="#4F8EF7" fill="#4F8EF7" fillOpacity={0.25} />
                 </RadarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col gap-2.5 w-full text-left self-start px-2 overflow-y-auto max-h-[180px] hide-scrollbar">
+            ) : chartData.length > 0 ? (
+              <div className="flex flex-col gap-3 w-full px-2">
                 {chartData.map((data, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs py-1 border-b border-darkBorder/40 last:border-b-0">
-                    <span className="text-gray-400 font-semibold">{data.subject}</span>
-                    <span className="text-accent font-bold font-mono">{data.score}%</span>
+                  <div key={idx}>
+                    <div className="flex justify-between items-center text-xs mb-1">
+                      <span className="text-gray-400 font-semibold truncate max-w-[60%]">{data.subject}</span>
+                      <span className="text-accent font-bold font-mono">{data.score}%</span>
+                    </div>
+                    <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden border border-darkBorder">
+                      <div
+                        className="bg-gradient-to-r from-accent/70 to-accent h-full rounded-full transition-all duration-1000"
+                        style={{ width: `${Math.min(data.score, 100)}%` }}
+                      />
+                    </div>
                   </div>
                 ))}
-                {chartData.length === 0 && (
-                  <span className="text-xs text-gray-500 italic">No skill breakdown details</span>
-                )}
               </div>
+            ) : (
+              <span className="text-xs text-gray-500 italic">No skill breakdown details</span>
             )}
           </div>
         </div>
@@ -407,6 +466,43 @@ export default function ReportPage({ profile, report, onReset }) {
           </ul>
         </div>
       </div>
+
+      {/* Recommended Learning Path */}
+      {report.learningResources && report.learningResources.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen size={16} className="text-accent" />
+            <h2 className="text-white font-bold text-base uppercase tracking-wider">Recommended Learning Path</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {report.learningResources.map((res, i) => (
+              <div
+                key={i}
+                className="rounded-xl bg-card/30 border border-darkBorder border-l-4 border-l-accent p-4 flex flex-col gap-2.5 hover:border-l-accentHover transition-all"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/20 uppercase tracking-wider">
+                    {res.skill}
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-white leading-snug">{res.resource}</p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">{res.reason}</p>
+                {res.url && (
+                  <a
+                    href={res.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent text-[11px] font-bold border border-accent/20 transition-all cursor-pointer"
+                  >
+                    Start Learning
+                    <ExternalLink size={10} />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary Conclusion Box */}
       <div className="rounded-2xl border border-darkBorder bg-card/35 p-6 text-center">

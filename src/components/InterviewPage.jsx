@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Award, TrendingUp, CheckCircle2, XCircle, Send, Loader2, Volume2, VolumeX, Pause, Play, Camera, ShieldAlert, Sparkles, Check, PlayCircle, Clock } from 'lucide-react';
+import { User, Award, TrendingUp, CheckCircle2, XCircle, Send, Loader2, Volume2, VolumeX, Pause, Play, Camera, ShieldAlert, Sparkles, Check, PlayCircle, Clock, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function InterviewPage({ profile, history, setHistory, currentQuestion, setCurrentQuestion, questionNumber, setQuestionNumber, onInterviewEnd, activeUser }) {
@@ -25,7 +25,14 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   // Feedback Toast Overlay
-  const [feedbackToast, setFeedbackToast] = useState({ show: false, score: 0, text: '' });
+  const [feedbackToast, setFeedbackToast] = useState({ show: false, score: 0, text: '', criteriaScores: null });
+  const [idealHints, setIdealHints] = useState([]);
+
+  // TTS state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Slow-load server warning
+  const [showSlowLoadWarning, setShowSlowLoadWarning] = useState(false);
 
   // Post-Interview End Steps Progress
   const [endStep, setEndStep] = useState(0); // 0: complete, 1: answers, 2: scores, 3: insights
@@ -56,6 +63,11 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
 
   const fetchFirstQuestion = async () => {
     setLoadingFirst(true);
+    setShowSlowLoadWarning(false);
+
+    // Warn user if server is cold-starting (>8s)
+    const slowTimer = setTimeout(() => setShowSlowLoadWarning(true), 8000);
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/next-question`, {
         method: 'POST',
@@ -77,6 +89,8 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
       console.error(err);
       setCurrentQuestion("Could you start by introducing yourself and giving us a brief overview of your background and experience?");
     } finally {
+      clearTimeout(slowTimer);
+      setShowSlowLoadWarning(false);
       setLoadingFirst(false);
     }
   };
@@ -92,13 +106,34 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
 
   // Web Audio API Synthesizer clicks & chimes
   const getAudioContext = () => {
-    if (!audioCtxRef.current) {
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioCtxRef.current.state === 'suspended') {
       audioCtxRef.current.resume();
     }
     return audioCtxRef.current;
+  };
+
+  // Text-to-Speech: read question aloud
+  const speakQuestion = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.85;
+    utterance.pitch = 1.0;
+    // Prefer en-US voice
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice = voices.find(v => v.lang === 'en-US') || null;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
   };
 
   const playKeyboardSound = () => {
@@ -236,6 +271,17 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, [stage, isPaused, questionNumber, waitingForAI]);
+
+  // Auto-speak new question when entering active stage and sound is enabled
+  useEffect(() => {
+    if (stage === 'active' && soundEnabled && currentQuestion && !loadingFirst) {
+      speakQuestion(currentQuestion);
+    }
+    // Cancel speech when leaving active stage
+    if (stage !== 'active') {
+      stopSpeaking();
+    }
+  }, [stage, currentQuestion]);
 
   // Clean up all timers on unmount
   useEffect(() => {
@@ -461,10 +507,13 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
       setHistory(updatedHistory);
 
       // Trigger live score slide-in toast
+      const hints = evalData.evaluation.idealAnswerHints || [];
+      setIdealHints(hints);
       setFeedbackToast({
         show: true,
         score: evalData.evaluation.score,
-        text: `✓ Evaluation: ${evalData.evaluation.feedback}`
+        text: `✓ Evaluation: ${evalData.evaluation.feedback}`,
+        criteriaScores: evalData.evaluation.criteriaScores || null
       });
 
       // 3. Preload next question in parallel
@@ -473,9 +522,10 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
         preloadNextQuestion(updatedHistory, nextQNum);
       }
 
-      // Hold for 3s, then load get-ready or compile results
+      // Hold for 6s (user needs time to read hints), then load get-ready or compile results
       setTimeout(() => {
         setFeedbackToast({ show: false, score: 0, text: '' });
+        setIdealHints([]);
         setWaitingForAI(false);
         isSubmittingRef.current = false;
         
@@ -486,7 +536,7 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
           setStage('thinking');
           startGetReadyCountdown();
         }
-      }, 3000);
+      }, 6000);
 
     } catch (err) {
       console.error(err);
@@ -499,6 +549,7 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
         }
       ];
       setHistory(updatedHistory);
+      setIdealHints([]);
       setFeedbackToast({
         show: true,
         score: 70,
@@ -507,6 +558,7 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
 
       setTimeout(() => {
         setFeedbackToast({ show: false, score: 0, text: '' });
+        setIdealHints([]);
         setWaitingForAI(false);
         isSubmittingRef.current = false;
         const nextQNum = questionNumber + 1;
@@ -517,7 +569,7 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
           setStage('thinking');
           startGetReadyCountdown();
         }
-      }, 3000);
+      }, 6000);
     }
   };
 
@@ -835,14 +887,72 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
       <div className={`fixed top-20 right-6 z-50 transition-all duration-500 transform ${
         feedbackToast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
       }`}>
-        <div className="rounded-2xl glass-panel border border-darkBorder p-4 shadow-2xl max-w-sm flex items-start gap-4">
-          <div className={`px-2.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex-shrink-0 ${getScoreBadgeColor(feedbackToast.score)}`}>
-            {feedbackToast.score}
+        <div className="rounded-2xl glass-panel border border-darkBorder p-4 shadow-2xl max-w-md w-[22rem]">
+          {/* Toast header row: score badge + title + close button */}
+          <div className="flex items-start gap-3">
+            <div className={`px-2.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex-shrink-0 ${getScoreBadgeColor(feedbackToast.score)}`}>
+              {feedbackToast.score}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold text-white">Answer Logged</h4>
+              <p className="text-[11px] text-gray-400 leading-normal mt-1">{feedbackToast.text}</p>
+            </div>
+            <button
+              onClick={() => {
+                setFeedbackToast({ show: false, score: 0, text: '', criteriaScores: null });
+                setIdealHints([]);
+              }}
+              className="flex-shrink-0 p-1 rounded-lg hover:bg-white/10 text-gray-500 hover:text-gray-200 transition-colors cursor-pointer"
+              title="Dismiss"
+            >
+              <X size={13} />
+            </button>
           </div>
-          <div>
-            <h4 className="text-xs font-bold text-white">Answer Logged</h4>
-            <p className="text-[11px] text-gray-400 leading-normal mt-1">{feedbackToast.text}</p>
-          </div>
+
+          {/* Criteria score breakdown bars */}
+          {feedbackToast.criteriaScores && (
+            <div className="mt-3 border-t border-darkBorder pt-3 space-y-2">
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Score Breakdown</p>
+              {[
+                { label: 'Correctness', key: 'correctness', max: 30, color: 'bg-emerald-500' },
+                { label: 'Depth',       key: 'depth',       max: 25, color: 'bg-accent' },
+                { label: 'Real World',  key: 'realWorld',   max: 25, color: 'bg-purple-500' },
+                { label: 'Communication', key: 'communication', max: 20, color: 'bg-amber-500' },
+              ].map(({ label, key, max, color }) => {
+                const val = feedbackToast.criteriaScores[key] ?? 0;
+                const pct = Math.round((val / max) * 100);
+                return (
+                  <div key={key}>
+                    <div className="flex justify-between items-center text-[10px] mb-0.5">
+                      <span className="text-gray-400 font-medium">{label}</span>
+                      <span className="text-white font-bold font-mono">{val}/{max}</span>
+                    </div>
+                    <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className={`${color} h-full rounded-full transition-all duration-700`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Ideal answer hints */}
+          {idealHints.length > 0 && (
+            <div className="mt-3 border-t border-darkBorder pt-3">
+              <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-2">
+                What a great answer includes:
+              </p>
+              {idealHints.map((hint, i) => (
+                <div key={i} className="flex gap-2 text-[11px] text-gray-300 mb-1">
+                  <span className="text-accent flex-shrink-0">•</span>
+                  <span>{hint}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1003,6 +1113,14 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
               </p>
             )}
 
+            {/* Slow-load server warning banner */}
+            {showSlowLoadWarning && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[11px] font-semibold">
+                <Loader2 size={12} className="animate-spin flex-shrink-0" />
+                Server is waking up, please wait up to 30 seconds...
+              </div>
+            )}
+
             {/* Active Question text */}
             <div className={`p-4 bg-black/20 border border-darkBorder/20 rounded-xl min-h-[90px] flex items-center justify-center animate-fade-in ${isPaused ? 'filter blur-md' : ''}`}>
               {loadingFirst ? (
@@ -1016,6 +1134,24 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
                 </p>
               )}
             </div>
+
+            {/* TTS speak button */}
+            {!loadingFirst && currentQuestion && !isPaused && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => isSpeaking ? stopSpeaking() : speakQuestion(currentQuestion)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all cursor-pointer ${
+                    isSpeaking
+                      ? 'bg-accent/15 border-accent/30 text-accent animate-pulse'
+                      : 'bg-card/30 border-darkBorder text-gray-400 hover:text-white hover:border-gray-500'
+                  }`}
+                  title={isSpeaking ? 'Stop reading' : 'Read question aloud'}
+                >
+                  <Volume2 size={12} />
+                  <span>{isSpeaking ? 'Stop' : 'Read Aloud'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Webcam Simulator Placeholder Box */}
