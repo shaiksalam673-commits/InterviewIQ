@@ -249,92 +249,86 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
-      {/* SaaS Navigation Header */}
-      <header className="border-b border-darkBorder bg-card/40 backdrop-blur-md sticky top-0 z-50">
+      {/* Premium Dark Pro Navigation Header */}
+      <header className="border-b border-darkBorder sticky top-0 z-50" style={{ background: '#0D1120' }}>
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-5">
+            {/* Logo */}
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={handleReset}>
-              <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center text-white font-black shadow-md shadow-accent/20">
+              <div
+                className="w-9 h-9 rounded-[10px] flex items-center justify-center text-white font-black text-sm shadow-lg"
+                style={{ background: 'linear-gradient(135deg, #4F8EF7, #7B5FF7)' }}
+              >
                 IQ
               </div>
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="text-white font-extrabold text-lg tracking-tight">InterviewIQ</span>
-                <span className="text-[10px] text-gray-500 font-mono ml-2 border border-darkBorder px-1.5 py-0.5 rounded bg-black/20">SaaS</span>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ background: '#1E2840', color: '#4F8EF7', borderRadius: '4px' }}
+                >
+                  SaaS
+                </span>
               </div>
             </div>
-            
+
             {activeUser && (
-              <nav className="hidden sm:flex items-center gap-1 border-l border-darkBorder pl-5">
-                <button
-                  onClick={() => setPage('upload')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    page === 'upload' ? 'bg-accent/10 text-accent border border-accent/20' : 'text-gray-400 hover:text-white border border-transparent'
-                  }`}
-                >
-                  Start New
-                </button>
-                <button
-                  onClick={() => setPage('history')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    page === 'history' ? 'bg-accent/10 text-accent border border-accent/20' : 'text-gray-400 hover:text-white border border-transparent'
-                  }`}
-                >
-                  History
-                </button>
-                <button
-                  onClick={() => setPage('admin')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    page === 'admin' ? 'bg-accent/10 text-accent border border-accent/20' : 'text-gray-400 hover:text-white border border-transparent'
-                  }`}
-                >
-                  Admin Console
-                </button>
+              <nav className="hidden sm:flex items-center gap-0.5 border-l border-darkBorder pl-5">
+                {[['upload','Start New'],['history','History'],['admin','Admin Console']].map(([p, label]) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      page === p
+                        ? 'text-accent'
+                        : 'text-[#8A9BC0] hover:text-white'
+                    }`}
+                    style={page === p ? { background: '#0F1A35' } : {}}
+                  >
+                    {label}
+                  </button>
+                ))}
               </nav>
             )}
           </div>
-          
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-3">
             {activeUser ? (
               <>
-                {/* Credit balance display */}
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col text-right">
-                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Remaining Balance</span>
-                    <span className="text-xs font-bold text-accent font-mono">
-                      {isPro ? (
-                        <span className="flex items-center gap-1 text-emerald-400">
-                          <Star size={10} fill="currentColor" /> Pro Unlimited
-                        </span>
-                      ) : (
-                        `${credits} Free ${credits === 1 ? 'Session' : 'Sessions'}`
-                      )}
+                {/* Credits Pill */}
+                <div
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ background: '#0F1A35', border: '1px solid #4F8EF7', color: '#4F8EF7', borderRadius: '20px' }}
+                >
+                  {isPro ? (
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      <Star size={10} fill="currentColor" /> Pro Unlimited
                     </span>
-                  </div>
-                  
-                  {/* Purchase/Upgrade Button */}
-                  {!isPro && (
-                    <button
-                      onClick={() => setUpgradeModalOpen(true)}
-                      className="px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20 text-accent hover:bg-accent hover:text-white transition-all text-xs font-semibold"
-                    >
-                      Upgrade
-                    </button>
+                  ) : (
+                    <span>{credits} Free {credits === 1 ? 'Session' : 'Sessions'}</span>
                   )}
                 </div>
 
-                {/* Logout details */}
-                <div className="flex items-center gap-3 border-l border-darkBorder pl-4">
+                {!isPro && (
+                  <button
+                    onClick={() => setUpgradeModalOpen(true)}
+                    className="px-3.5 py-1.5 rounded-[10px] text-white text-xs font-bold shadow-lg transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+                    style={{ background: 'linear-gradient(135deg, #4F8EF7, #7B5FF7)' }}
+                  >
+                    Upgrade
+                  </button>
+                )}
+
+                <div className="flex items-center gap-3 border-l border-darkBorder pl-3">
                   {isClerk ? (
                     <UserButton afterSignOutUrl="/" />
                   ) : (
                     <div className="flex items-center gap-2.5">
-                      <span className="text-xs text-gray-400 font-medium max-w-[100px] truncate">
-                        {activeUser.name}
-                      </span>
+                      <span className="text-xs text-[#8A9BC0] font-medium max-w-[100px] truncate">{activeUser.name}</span>
                       <button
                         onClick={handleLogout}
-                        className="p-1.5 rounded-lg border border-darkBorder bg-card/25 text-gray-500 hover:text-red-400 hover:border-red-500/20 transition-all"
-                        title="Log Out Mock Session"
+                        className="p-1.5 rounded-lg border border-darkBorder bg-card/25 text-[#4B5A80] hover:text-red-400 hover:border-red-500/20 transition-all"
+                        title="Log Out"
                       >
                         <LogOut size={13} />
                       </button>
@@ -343,15 +337,15 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs text-gray-500 font-mono flex items-center gap-1 mr-2">
-                  <Terminal size={12} />
-                  SaaS Mode
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-[#4B5A80] font-mono flex items-center gap-1">
+                  <Terminal size={12} /> SaaS Mode
                 </span>
                 {page === 'landing' && (
                   <button
                     onClick={() => setPage('auth')}
-                    className="px-4 py-1.5 rounded-xl bg-accent hover:bg-accentHover text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                    className="px-4 py-1.5 rounded-[10px] text-white text-xs font-bold shadow-lg transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+                    style={{ background: 'linear-gradient(135deg, #4F8EF7, #7B5FF7)' }}
                   >
                     Login
                   </button>
@@ -444,10 +438,10 @@ function AppInner({ clerkUser, isSignedIn, isClerk }) {
         />
       )}
 
-      {/* SaaS Footer */}
-      <footer className="border-t border-darkBorder bg-card/20 py-4 text-center mt-auto">
-        <p className="text-xs text-gray-500 font-medium">
-          InterviewIQ SaaS • {config.isGeminiConfigured ? "Live AI Mode" : "Sandbox Demo Mode"}
+      {/* Footer */}
+      <footer className="border-t border-darkBorder py-4 text-center mt-auto" style={{ background: '#0D1120' }}>
+        <p className="text-xs font-medium" style={{ color: '#4B5A80' }}>
+          InterviewIQ SaaS • {config.isGeminiConfigured ? '🟢 Live AI Mode' : '🟡 Sandbox Demo Mode'}
         </p>
       </footer>
 

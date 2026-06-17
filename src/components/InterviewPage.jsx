@@ -198,10 +198,17 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
   };
 
   const getCategoryBadgeColor = (qNum) => {
-    if (qNum <= 2) return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    if (qNum <= 7) return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
-    if (qNum <= 9) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-    return 'bg-pink-500/10 text-pink-400 border-pink-500/20';
+    if (qNum <= 2) return '';   // Warm-up
+    if (qNum <= 7) return '';   // Technical
+    if (qNum <= 9) return '';   // Behavioral
+    return '';                  // Situational
+  };
+
+  const getCategoryBadgeStyle = (qNum) => {
+    if (qNum <= 2) return { background: '#0F1A35', color: '#4F8EF7', border: '1px solid #1E3A6A' };
+    if (qNum <= 7) return { background: '#1A0F35', color: '#7B5FF7', border: '1px solid #3A1E6A' };
+    if (qNum <= 9) return { background: '#1A1200', color: '#F59E0B', border: '1px solid #6A4A00' };
+    return                { background: '#1A0A1A', color: '#EC4899', border: '1px solid #6A1A4A' };
   };
 
   // 1. Checklist Auto-start Trigger
@@ -659,11 +666,16 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
   const currentWords = getWordCount(answer);
   const quality = getQualityText(currentWords);
 
-  // Score Badge Color Helper
+  // Score Badge Color Helper — Premium Dark Pro
   const getScoreBadgeColor = (score) => {
-    if (score >= 80) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/35';
-    if (score >= 60) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/35';
-    return 'bg-red-500/20 text-red-400 border-red-500/35';
+    if (score >= 80) return '';
+    if (score >= 60) return '';
+    return '';
+  };
+  const getScoreBadgeStyle = (score) => {
+    if (score >= 80) return { background: '#052010', border: '1px solid #0F4A25', color: '#4ADE80' };
+    if (score >= 60) return { background: '#1A1200', border: '1px solid #6A4A00', color: '#FBBF24' };
+    return                  { background: '#1A0505', border: '1px solid #6A1515', color: '#F87171' };
   };
 
   // ============================================
@@ -676,7 +688,7 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
           <div className="text-center flex flex-col items-center justify-center p-8 rounded-2xl glass-panel border border-darkBorder w-full max-w-md shadow-2xl relative overflow-hidden animate-pulse-slow">
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-accent/10 rounded-full blur-2xl"></div>
             <h2 className="text-xl font-extrabold text-gray-400 uppercase tracking-widest mb-6">Initializing Interview Room</h2>
-            <div className="text-7xl font-black text-accent font-mono animate-bounce">{checklistTimer}</div>
+          <div className="text-7xl font-black font-mono animate-bounce" style={{ color: '#4F8EF7' }}>{checklistTimer}</div>
             <p className="text-xs text-gray-500 mt-6 leading-relaxed">Adjust your seat, minimize distractions, and prepare to begin.</p>
           </div>
         ) : (
@@ -760,7 +772,8 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
             <div className="mt-4 pt-6 border-t border-darkBorder flex justify-end">
               <button
                 onClick={handleBeginInterview}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-accent hover:bg-accentHover text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-white font-bold text-base flex items-center justify-center gap-2 shadow-xl transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                style={{ background: 'linear-gradient(135deg, #4F8EF7, #7B5FF7)' }}
               >
                 <PlayCircle size={18} />
                 <span>Begin Mock Interview</span>
@@ -890,7 +903,10 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
         <div className="rounded-2xl glass-panel border border-darkBorder p-4 shadow-2xl max-w-md w-[22rem]">
           {/* Toast header row: score badge + title + close button */}
           <div className="flex items-start gap-3">
-            <div className={`px-2.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex-shrink-0 ${getScoreBadgeColor(feedbackToast.score)}`}>
+            <div
+              className="px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold flex-shrink-0"
+              style={getScoreBadgeStyle(feedbackToast.score)}
+            >
               {feedbackToast.score}
             </div>
             <div className="flex-1 min-w-0">
@@ -970,10 +986,12 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
               </div>
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`p-2.5 rounded-xl border border-darkBorder transition-all flex items-center justify-center cursor-pointer ${
-                  soundEnabled ? 'bg-accent/10 text-accent border-accent/20' : 'bg-card/25 text-gray-500'
-                }`}
-                title={soundEnabled ? "Sound ON" : "Sound OFF"}
+                className={`p-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer`}
+                style={soundEnabled
+                  ? { background: 'rgba(79,142,247,0.12)', border: '1px solid rgba(79,142,247,0.25)', color: '#4F8EF7' }
+                  : { background: 'transparent', border: '1px solid #1E2840', color: '#4B5A80' }
+                }
+                title={soundEnabled ? 'Sound ON' : 'Sound OFF'}
               >
                 {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
               </button>
@@ -983,18 +1001,16 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
             <div className="my-8 flex flex-col items-center">
               <div className="relative w-36 h-36 mb-5">
                 {/* Green Pulsing Ring (speaking) vs Gray (listening) */}
-                {waitingForAI || stage === 'thinking' || feedbackToast.show ? (
-                  <>
-                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500 animate-ping opacity-20"></div>
-                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500 shadow-lg shadow-emerald-500/25"></div>
-                  </>
-                ) : (
-                  <div className="absolute inset-0 rounded-full border-4 border-gray-600"></div>
-                )}
+            <div
+              className="absolute inset-0 rounded-full"
+              style={waitingForAI || stage === 'thinking' || feedbackToast.show
+                ? { border: '3px solid #4F8EF7', boxShadow: '0 0 20px rgba(79,142,247,0.3)' }
+                : { border: '3px solid #1E2840' }
+              }
+            />
                 
-                {/* Center Circle */}
-                <div className="absolute inset-2 rounded-full bg-card flex items-center justify-center text-white text-3xl font-black shadow-inner">
-                  IQ
+                <div className="absolute inset-0 flex items-center justify-center text-2xl font-black" style={{ background: '#0F1A35', borderRadius: '50%' }}>
+                  <span className="gradient-text" style={{ fontSize: '22px', fontWeight: 900 }}>IQ</span>
                 </div>
               </div>
 
@@ -1021,7 +1037,10 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
             <div className="w-full border-t border-darkBorder/60 pt-4 mt-6">
               <button
                 onClick={handleEndEarly}
-                className="w-full py-2.5 rounded-xl border border-red-500/20 bg-red-950/15 hover:bg-red-950/35 text-red-300 text-xs font-bold transition-all hover:border-red-500/40 cursor-pointer"
+                className="w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                style={{ border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(127,29,29,0.1)', color: '#FCA5A5' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(127,29,29,0.25)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(127,29,29,0.1)'}
               >
                 End Interview Early
               </button>
@@ -1055,12 +1074,13 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
                   cy="32"
                   r={radius}
                   className={`fill-none transition-all duration-1000 ${
-                    secondsLeft <= 10 
-                      ? 'stroke-red-500 animate-pulse' 
-                      : secondsLeft <= 30 
-                        ? 'stroke-yellow-500' 
-                        : 'stroke-emerald-500'
+                    secondsLeft <= 10
+                      ? 'animate-pulse'
+                      : ''
                   }`}
+                  style={{
+                    stroke: secondsLeft <= 10 ? '#EF4444' : secondsLeft <= 30 ? '#FBBF24' : '#4F8EF7'
+                  }}
                   strokeWidth="3.5"
                   strokeDasharray={circumference}
                   strokeDashoffset={strokeDashoffset}
@@ -1096,10 +1116,13 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
             {/* Header Details */}
             <div className={`flex items-center justify-between border-b border-darkBorder/40 pb-3 ${isPaused ? 'filter blur-md' : ''}`}>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-white font-mono bg-card/60 border border-darkBorder/60 px-2.5 py-1 rounded-lg">
+                <span className="text-xs font-bold text-white font-mono px-2.5 py-1 rounded-lg" style={{ background: '#0F1A35', border: '1px solid #1E2840' }}>
                   Question {questionNumber} of 10
                 </span>
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest border uppercase ${getCategoryBadgeColor(questionNumber)}`}>
+                <span
+                  className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase"
+                  style={getCategoryBadgeStyle(questionNumber)}
+                >
                   {getCategoryName(questionNumber)}
                 </span>
               </div>
@@ -1220,13 +1243,16 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
                 disabled={waitingForAI || isPaused}
                 maxLength={2000}
                 placeholder={
-                  isPaused 
-                    ? "Session is paused..." 
-                    : waitingForAI 
-                      ? "Waiting for AI evaluator..." 
-                      : "Type your structured response here... (Press Enter to submit, Shift+Enter for new line)"
+                  isPaused
+                    ? 'Session is paused...'
+                    : waitingForAI
+                      ? 'Waiting for AI evaluator...'
+                      : 'Type your structured response here... (Press Enter to submit, Shift+Enter for new line)'
                 }
-                className="w-full bg-card/45 border border-darkBorder focus:border-accent focus:ring-1 focus:ring-accent rounded-xl p-4 text-white placeholder-gray-600 text-sm h-32 outline-none transition-all resize-none disabled:opacity-50"
+                className="w-full rounded-xl p-4 text-white text-sm h-32 outline-none transition-all resize-none disabled:opacity-50"
+                style={{ background: '#080B14', border: '1px solid #1E2840', color: '#fff' }}
+                onFocus={e  => { e.currentTarget.style.border = '1px solid #4F8EF7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(79,142,247,0.1)'; }}
+                onBlur={e   => { e.currentTarget.style.border = '1px solid #1E2840'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
 
@@ -1238,11 +1264,12 @@ export default function InterviewPage({ profile, history, setHistory, currentQue
               <button
                 type="submit"
                 disabled={!answer.trim() || waitingForAI || isPaused}
-                className={`px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer ${
+                className="px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer"
+                style={
                   answer.trim() && !waitingForAI && !isPaused
-                    ? 'bg-accent text-white hover:bg-accentHover hover:scale-[1.02] active:scale-[0.98]'
-                    : 'bg-darkBorder text-gray-500 border border-gray-800 cursor-not-allowed'
-                }`}
+                    ? { background: 'linear-gradient(135deg, #4F8EF7, #7B5FF7)', color: '#fff' }
+                    : { background: '#1E2840', color: '#4B5A80', cursor: 'not-allowed' }
+                }
               >
                 {waitingForAI ? (
                   <>

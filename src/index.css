@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,89 +6,120 @@
 
 @layer base {
   body {
-    @apply bg-background text-gray-200 antialiased font-sans selection:bg-accent selection:text-white;
+    background: #080B14;
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scrollbar-width: thin;
+    scrollbar-color: #1E2840 transparent;
+  }
+
+  ::selection {
+    background: rgba(79, 142, 247, 0.3);
+    color: #fff;
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+/* ─── Custom Scrollbar ─────────────────────────────── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #1E2840; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #4F8EF7; }
 
-::-webkit-scrollbar-track {
-  background: #0F1117;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #2A2E3D;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #4F8EF7;
-}
-
-/* Custom Glassmorphism styles */
+/* ─── Premium Glass Panel ──────────────────────────── */
 .glass-panel {
-  background: rgba(26, 29, 39, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(13, 17, 32, 0.80);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .glass-card {
-  background: rgba(26, 29, 39, 0.45);
+  background: rgba(13, 17, 32, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
-/* Typing Indicator Animation */
+/* ─── Gradient Utilities ───────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #4F8EF7, #7B5FF7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #4F8EF7, #7B5FF7);
+}
+
+.gradient-bg-hover:hover {
+  background: linear-gradient(135deg, #3A7AE8, #6A4FE8);
+}
+
+/* ─── Glow Effects ─────────────────────────────────── */
+.glow-accent {
+  box-shadow: 0 0 24px rgba(79, 142, 247, 0.18);
+}
+
+.glow-accent-sm {
+  box-shadow: 0 0 12px rgba(79, 142, 247, 0.12);
+}
+
+.glow-purple {
+  box-shadow: 0 0 24px rgba(123, 95, 247, 0.15);
+}
+
+/* ─── Grid Pattern Overlay ─────────────────────────── */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(30, 40, 64, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 40, 64, 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ─── Typing Indicator ─────────────────────────────── */
 @keyframes typing-bounce {
-  0%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
+  0%, 100% { transform: translateY(0);    opacity: 0.4; }
+  50%       { transform: translateY(-4px); opacity: 1;   }
 }
+.dot-bounce                    { animation: typing-bounce 1.4s infinite ease-in-out; }
+.dot-bounce:nth-child(2)       { animation-delay: 0.2s; }
+.dot-bounce:nth-child(3)       { animation-delay: 0.4s; }
 
-.dot-bounce {
-  animation: typing-bounce 1.4s infinite ease-in-out;
-}
-
-.dot-bounce:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.dot-bounce:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-/* Slide in transitions */
-.page-transition {
-  animation: fadeIn 0.3s ease-out;
-}
+/* ─── Page Transitions ─────────────────────────────── */
+.page-transition { animation: fadeIn 0.32s ease-out; }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
 }
 
-/* Hide default scrollbar but allow scrolling on specific panes if needed */
-.hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1);    }
 }
-.hide-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+
+.animate-scale-in { animation: scaleIn 0.2s ease-out; }
+.animate-fade-in  { animation: fadeIn 0.3s ease-out;  }
+
+/* ─── Hide Scrollbar ───────────────────────────────── */
+.hide-scrollbar                     { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar  { display: none; }
+
+/* ─── Gradient Button ──────────────────────────────── */
+.btn-gradient {
+  background: linear-gradient(135deg, #4F8EF7, #7B5FF7);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  transition: opacity 0.18s, transform 0.15s;
+}
+.btn-gradient:hover   { opacity: 0.88; transform: scale(1.015); }
+.btn-gradient:active  { transform: scale(0.98); }
+.btn-gradient:disabled {
+  background: #1E2840;
+  color: #4B5A80;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
 }

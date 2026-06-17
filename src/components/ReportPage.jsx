@@ -249,33 +249,43 @@ export default function ReportPage({ profile, report, onReset }) {
       {/* Header Info */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-darkBorder">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent mb-3 text-xs font-medium">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-3"
+            style={{ background: '#0F1A35', border: '1px solid #1E3A6A', color: '#4F8EF7' }}
+          >
             <Sparkles size={12} />
             <span>Interview Evaluated Successfully</span>
           </div>
           <h1 className="text-3xl font-extrabold text-white">Performance Report</h1>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-sm mt-1" style={{ color: '#8A9BC0' }}>
             Review your core competencies, key strengths, and targeted improvement areas to refine your answers.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={onReset}
-            className="px-4 py-2.5 rounded-xl border border-darkBorder hover:border-gray-500 bg-card/40 text-gray-300 font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            className="px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            style={{ background: '#0D1120', border: '1px solid #1E2840', color: '#8A9BC0' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = '#2A3A6A'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = '#1E2840'}
           >
             <RotateCcw size={16} />
             <span>Try Again</span>
           </button>
           <button
             onClick={handleLinkedInShare}
-            className="px-5 py-2.5 rounded-xl bg-[#0A66C2] hover:bg-[#0856a8] text-white font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-blue-900/30 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg cursor-pointer"
+            style={{ background: '#0A66C2' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#0856a8'}
+            onMouseLeave={e => e.currentTarget.style.background = '#0A66C2'}
           >
             <Linkedin size={16} />
             <span>Share on LinkedIn</span>
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accentHover text-white font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-accent/20 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-xl cursor-pointer"
+            style={{ background: 'linear-gradient(135deg, #4F8EF7, #7B5FF7)' }}
           >
             <Download size={16} />
             <span>Download Report (PDF)</span>
@@ -300,33 +310,47 @@ export default function ReportPage({ profile, report, onReset }) {
                 cx="72"
                 cy="72"
                 r={radius}
-                className="stroke-darkBorder"
                 strokeWidth={strokeWidth}
                 fill="transparent"
+                style={{ stroke: '#1E2840' }}
               />
               <circle
                 cx="72"
                 cy="72"
                 r={radius}
-                className={`transition-all duration-1000 ${strokeClass}`}
+                className="transition-all duration-1000"
                 strokeWidth={strokeWidth}
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
                 fill="transparent"
+                style={{
+                  stroke: report.overallScore >= 90 ? '#4F8EF7'
+                        : report.overallScore >= 70 ? '#FBBF24'
+                        : '#F87171'
+                }}
               />
             </svg>
             <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-3xl font-extrabold text-white font-mono leading-none">
-                {report.overallScore}
-              </span>
+            <span className="text-3xl font-black text-white font-mono leading-none">
+              {report.overallScore}
+            </span>
               <span className="text-[11px] text-gray-500 font-medium tracking-wider uppercase mt-1">
                 Out of 100
               </span>
             </div>
           </div>
 
-          <div className={`px-4 py-1.5 rounded-full border text-sm font-bold capitalize ${ratingClass}`}>
+          <div
+            className="px-4 py-1.5 rounded-full border text-sm font-bold capitalize"
+            style={{
+              background: report.overallScore >= 90 ? 'rgba(79,142,247,0.1)'
+                        : report.overallScore >= 70 ? 'rgba(251,191,36,0.1)'
+                        : 'rgba(248,113,113,0.1)',
+              border: `1px solid ${report.overallScore >= 90 ? 'rgba(79,142,247,0.25)' : report.overallScore >= 70 ? 'rgba(251,191,36,0.25)' : 'rgba(248,113,113,0.25)'}`,
+              color: report.overallScore >= 90 ? '#4F8EF7' : report.overallScore >= 70 ? '#FBBF24' : '#F87171'
+            }}
+          >
             {report.performanceRating || 'Proficient'}
           </div>
 
@@ -412,12 +436,11 @@ export default function ReportPage({ profile, report, onReset }) {
                     <span className="text-gray-300 font-semibold">{skill}</span>
                     <span className="text-accent font-bold font-mono">{val}%</span>
                   </div>
-                  <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden border border-darkBorder">
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: '#080B14', border: '1px solid #1E2840' }}>
                     <div
-                      className="bg-gradient-to-r from-accent/70 to-accent h-full rounded-full transition-all duration-1000"
-                      style={{ width: `${val}%` }}
-                    ></div>
-                  </div>
+                      className="h-full rounded-full transition-all duration-1000"
+                      style={{ width: `${val}%`, background: 'linear-gradient(90deg, rgba(79,142,247,0.7), #4F8EF7)' }}
+                    /></div>
                 </div>
               ))}
             </div>
@@ -435,8 +458,13 @@ export default function ReportPage({ profile, report, onReset }) {
       {/* Strengths & Improvements Detail List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Strengths */}
-        <div className="rounded-2xl glass-panel border border-darkBorder p-6 hover:border-emerald-500/20 transition-all">
-          <h3 className="text-emerald-400 font-semibold text-sm tracking-wider uppercase mb-4 flex items-center gap-2">
+        <div
+          className="rounded-2xl glass-panel border border-darkBorder p-6 transition-all"
+          style={{ borderColor: '#1E2840' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(74,222,128,0.2)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = '#1E2840'}
+        >
+          <h3 className="font-semibold text-sm tracking-wider uppercase mb-4 flex items-center gap-2" style={{ color: '#4ADE80' }}>
             <CheckCircle2 size={16} />
             Key Strengths
           </h3>
@@ -451,8 +479,13 @@ export default function ReportPage({ profile, report, onReset }) {
         </div>
 
         {/* Improvements */}
-        <div className="rounded-2xl glass-panel border border-darkBorder p-6 hover:border-red-500/20 transition-all">
-          <h3 className="text-red-400 font-semibold text-sm tracking-wider uppercase mb-4 flex items-center gap-2">
+        <div
+          className="rounded-2xl glass-panel border border-darkBorder p-6 transition-all"
+          style={{ borderColor: '#1E2840' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(248,113,113,0.2)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = '#1E2840'}
+        >
+          <h3 className="font-semibold text-sm tracking-wider uppercase mb-4 flex items-center gap-2" style={{ color: '#F87171' }}>
             <AlertTriangle size={16} />
             Areas to Improve
           </h3>
